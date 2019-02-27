@@ -1,6 +1,6 @@
 'use strict';
 
-const koa = require('koa'),
+const Koa = require('koa'),
   route = require('koa-route'),
   compress = require('koa-compress'),
   bodyparser = require('koa-bodyparser'),
@@ -14,13 +14,13 @@ describe('koa', () => {
   let app;
 
   beforeEach(function() {
-    app = koa();
+    app = new Koa();
   });
 
   it('basic middleware should set statusCode and default body', () => {
-    app.use(function* (next) {
-      this.status = 418;
-      yield* next;
+    app.use(async (ctx, next) => {
+      ctx.status = 418;
+      await next();
     });
 
     return request(app, {
@@ -34,9 +34,9 @@ describe('koa', () => {
   });
 
   it('basic middleware should receive queryString', () => {
-    app.use(function* (next) {
-      this.body = this.query.x;
-      yield* next;
+    app.use(async (ctx, next) => {
+      ctx.body = ctx.query.x;
+      await next();
     });
 
     return request(app, {
@@ -52,9 +52,9 @@ describe('koa', () => {
   });
 
   it('basic middleware should receive multi-value queryString', () => {
-    app.use(function* (next) {
-      this.body = this.query.x;
-      yield* next;
+    app.use(async (ctx, next) => {
+      ctx.body = ctx.query.x;
+      await next();
     });
 
     return request(app, {
@@ -72,12 +72,11 @@ describe('koa', () => {
     });
   });
 
-
   it('basic middleware should set statusCode and custom body', () => {
-    app.use(function* (next) {
-      this.status = 201;
-      this.body = { foo: 'bar' };
-      yield* next;
+    app.use(async (ctx, next) => {
+      ctx.status = 201;
+      ctx.body = { foo: 'bar' };
+      await next();
     });
 
     return request(app, {
@@ -91,10 +90,10 @@ describe('koa', () => {
   });
 
   it('basic middleware should set headers', () => {
-    app.use(function* (next) {
-      this.body = { "test": "foo" };
-      this.set('X-Test-Header', 'foo');
-      yield* next;
+    app.use(async (ctx, next) => {
+      ctx.body = { "test": "foo" };
+      ctx.set('X-Test-Header', 'foo');
+      await next();
     });
 
     return request(app, {
@@ -113,10 +112,10 @@ describe('koa', () => {
 
   it('basic middleware should get headers', () => {
     let headers;
-    app.use(function* (next) {
-      headers = this.request.headers;
-      this.status = 204;
-      yield* next;
+    app.use(async (ctx, next) => {
+      headers = ctx.request.headers;
+      ctx.status = 204;
+      await next();
     });
 
     return request(app, {
@@ -133,8 +132,14 @@ describe('koa', () => {
   });
 
   it('error middleware should set statusCode and default body', () => {
-    app.use(function* () {
-      throw new Error('hey man, nice shot');
+    app.use(async (ctx, next) => {
+      try {
+        throw new Error('hey man, nice shot');
+      } catch (err) {
+        ctx.status = 500;
+        ctx.body = "Internal Server Error";
+      }
+      await next();
     });
     return request(app, {
       httpMethod: 'GET',
@@ -146,9 +151,10 @@ describe('koa', () => {
     });
   });
 
-it('auth middleware should set statusCode 401', () => {
-    app.use(function* () {
-      this.throw(`Unauthorized: ${this.request.method} ${this.request.url}`, 401);
+  it('auth middleware should set statusCode 401', () => {
+    app.use(async (ctx, next) => {
+      ctx.throw(401, `Unauthorized: ${ctx.request.method} ${ctx.request.url}`);
+      await next();
     });
     return request(app, {
       httpMethod: 'GET',
@@ -159,19 +165,20 @@ it('auth middleware should set statusCode 401', () => {
     });
   });
 
-
   describe('koa-route', () => {
 
     beforeEach(() => {
-      app.use(route.get('/foo', function* () {
-        this.body = 'foo';
+      app.use(route.get('/foo', ctx => {
+        ctx.status = 200;
+        ctx.body = 'foo';
       }));
-      app.use(route.get('/foo/:bar', function* (bar) {
-        this.body = bar;
+      app.use(route.get('/foo/:bar', (ctx, bar) => {
+        ctx.status = 200;
+        ctx.body = bar;
       }));
-      app.use(route.post('/foo', function* () {
-        this.status = 201;
-        this.body = 'Thanks';
+      app.use(route.post('/foo', ctx => {
+        ctx.status = 201;
+        ctx.body = 'Thanks';
       }));
     });
 
@@ -224,16 +231,16 @@ it('auth middleware should set statusCode 401', () => {
     beforeEach(() => {
       const router = new Router();
 
-      router.use('/route', function* (next) {
-        if (this.method === 'POST') {
-          this.status = 404;
+      router.use('/route', async (ctx, next) => {
+        if (ctx.method === 'POST') {
+          ctx.status = 404;
         } else {
-          yield* next;
+          await next();
         }
       });
 
-      router.get('/', function* () {
-        this.body = yield Promise.resolve('hello');
+      router.get('/', async ctx => {
+        ctx.body = await Promise.resolve('hello');
       });
 
       app.use(router.routes());
@@ -276,10 +283,10 @@ it('auth middleware should set statusCode 401', () => {
       const body = `{"foo":"bar"}`;
 
       let actual;
-      app.use(function*() {
-        this.status = 204;
-        this.body = {};
-        actual = this.request.body;
+      app.use(async ctx => {
+        ctx.status = 204;
+        ctx.body = {};
+        actual = ctx.request.body;
       });
       return request(app, {
         httpMethod: 'GET',
@@ -299,10 +306,10 @@ it('auth middleware should set statusCode 401', () => {
 
     it('works with gzip (base64 encoded string)', () => {
       let actual;
-      app.use(function*() {
-        this.status = 204;
-        this.body = {};
-        actual = this.request.body;
+      app.use(async ctx => {
+        ctx.status = 204;
+        ctx.body = {};
+        actual = ctx.request.body;
       });
 
       return new Promise((resolve) => {
@@ -332,8 +339,8 @@ it('auth middleware should set statusCode 401', () => {
 
     it('can handle DELETE with no body', () => {
       let called;
-      app.use(function*() {
-        this.status = 204;
+      app.use(async ctx => {
+        ctx.status = 204;
         called = true;
       });
       return request(app, {
@@ -372,8 +379,8 @@ it('auth middleware should set statusCode 401', () => {
       app.use(compress({
         threshold: 1
       }));
-      app.use(function* () {
-        this.body = 'this is a test';
+      app.use(async ctx => {
+        ctx.body = 'this is a test';
       });
     });
 
