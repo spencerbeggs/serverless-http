@@ -3,6 +3,7 @@
 const restana = require('restana'),
   bodyParser = require('body-parser'),
   morgan = require('morgan'),
+  sinon = require('sinon'),
   expect = require('chai').expect,
   url = require('url'),
   request = require('./util/request');
@@ -106,8 +107,14 @@ describe('restana', () => {
   });
 
   describe('morgan', () => {
+    let stream;
+    beforeEach(() => {
+      stream = {
+        write: sinon.fake()
+      }
+    });
     it('combined', () => {
-      app.use(morgan('combined'));
+      app.use(morgan('combined', {stream}));
       app.use((req, res) => {
         res.send('hello, morgan');
       });
@@ -125,12 +132,13 @@ describe('restana', () => {
         }
       })
       .then(response => {
+        expect(stream.write.callCount).to.equal(1);
         expect(response.statusCode).to.equal(200);
       });
     });
 
     it('short', () => {
-      app.use(morgan('short'));
+      app.use(morgan('short', {stream}));
       app.use((req, res) => {
         res.send('hello, morgan');
       });
@@ -147,13 +155,17 @@ describe('restana', () => {
         }
       })
       .then(response => {
+        expect(stream.write.callCount).to.equal(1);
         expect(response.statusCode).to.equal(200);
       });
     });
   });
 
   it('address() returns a stubbed object', () => {
-    app.use(morgan('short'));
+    let stream = {
+      write: sinon.fake()
+    };
+    app.use(morgan('short', {stream}));
     app.use((req, res) => {
       res.send(req.connection.address());
     });
@@ -162,6 +174,7 @@ describe('restana', () => {
       httpMethod: 'GET'
     })
     .then(response => {
+      expect(stream.write.callCount).to.equal(1);
       expect(response.statusCode).to.equal(200);
       expect(response.body).to.equal(JSON.stringify({ port: 443 }));
     });

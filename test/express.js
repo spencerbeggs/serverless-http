@@ -3,6 +3,7 @@
 const express = require('express'),
   bodyParser = require('body-parser'),
   morgan = require('morgan'),
+  sinon = require('sinon'),
   expect = require('chai').expect,
   request = require('./util/request');
 
@@ -117,8 +118,14 @@ describe('express', () => {
   });
 
   describe('morgan', () => {
+    let stream;
+    beforeEach(() => {
+      stream = {
+        write: sinon.fake()
+      }
+    });
     it('combined', () => {
-      app.use(morgan('combined'));
+      app.use(morgan('combined', {stream}));
       app.use((req, res) => {
         res.status(200).send('hello, morgan');
       });
@@ -136,12 +143,13 @@ describe('express', () => {
         }
       })
       .then(response => {
+        expect(stream.write.callCount).to.equal(1);
         expect(response.statusCode).to.equal(200);
       });
     });
 
     it('short', () => {
-      app.use(morgan('short'));
+      app.use(morgan('short', {stream}));
       app.use((req, res) => {
         res.status(200).send('hello, morgan');
       });
@@ -158,13 +166,17 @@ describe('express', () => {
         }
       })
       .then(response => {
+        expect(stream.write.callCount).to.equal(1);
         expect(response.statusCode).to.equal(200);
       });
     });
   });
 
   it('address() returns a stubbed object', () => {
-    app.use(morgan('short'));
+    let stream = {
+      write: sinon.fake()
+    };
+    app.use(morgan('short', {stream}));
     app.use((req, res) => {
       res.status(200).send(req.connection.address());
     });
@@ -173,6 +185,7 @@ describe('express', () => {
       httpMethod: 'GET'
     })
     .then(response => {
+      expect(stream.write.callCount).to.equal(1);
       expect(response.statusCode).to.equal(200);
       expect(response.body).to.equal(JSON.stringify({ port: 443 }));
     });
