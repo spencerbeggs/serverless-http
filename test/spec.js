@@ -5,6 +5,7 @@ const onFinished = require('on-finished');
 const getStream = require('get-stream');
 
 const serverless = require('../serverless-http'),
+  checkOptions = require('../lib/options'),
   expect = require('chai').expect;
 
 describe('spec', () => {
@@ -306,6 +307,51 @@ describe('spec', () => {
       expect(err).to.be.null;
       expect(r).to.be.undefined;
     });
+  });
+
+  describe('shared options', () => {
+
+    it('should throw if options.platform is not a string', () => {
+      expect(() => checkOptions({
+        platform: undefined
+      })).to.throw(Error);
+    });
+
+    it('should throw if options.type is not a string', () => {
+      expect(() => checkOptions({
+        type: undefined
+      })).to.throw(Error);
+    });
+
+    it('should throw if options.platform is not "aws"', () => {
+      expect(() => checkOptions({
+        platform: "foobar"
+      })).to.throw(Error);
+    });
+  });
+
+  describe('aws platform options', () => {
+
+    it('should throw if option.type is invalid for options.platform "aws"', () => {
+      expect(() => checkOptions({
+        type: "foobar"
+      })).to.throw(Error);
+    });
+
+    it('should throw if option.type is invalid for options.platform "aws"', () => {
+      expect(() => checkOptions({
+        type: "foobar"
+      })).to.throw(Error);
+    });
+
+    it('should not throw if option.type is valid', () => {
+      ["default", "edge-viewer-request", "edge-viewer-response", "edge-origin-request", "edge-origin-response"].forEach(type => {
+        expect(() => checkOptions({
+          type
+        })).to.not.throw();
+      });
+    });
+
   });
 
 });

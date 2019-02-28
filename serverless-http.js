@@ -6,18 +6,14 @@ const cleanUpEvent = require('./lib/clean-up-event');
 const getBody = require('./lib/get-body');
 const isBinary = require('./lib/is-binary');
 const dispatch = require('./lib/dispatch');
+const checkOptions = require("./lib/options");
 
 const Request = require('./lib/request');
 const Response = require('./lib/response');
 
-const defaultOptions = {
-  requestId: 'x-request-id'
-};
-
 module.exports = function (app, opts = {}) {
   const handler = getHandler(app);
-  const options = Object.assign({}, defaultOptions, opts);
-
+  const { options } = checkOptions(opts);
   return (evt, ctx, callback) => {
 
     ctx.callbackWaitsForEmptyEventLoop = !!options.callbackWaitsForEmptyEventLoop;
@@ -25,10 +21,17 @@ module.exports = function (app, opts = {}) {
     const promise = Promise.resolve()
       .then(() => {
         const context = ctx || {};
-        const event = cleanUpEvent(evt);
+        const event = cleanUpEvent(evt, options);
 
-        const request = new Request(event, options);
-
+        const request = Request(event);
+        console.log(request);
+        for (let headerName in event.headers) {
+          if (Array.isArray(event.headers[headerName])) {
+            event.headers[headerName].forEach(value => request.setHeader(headerName, value));
+          } else {
+            request.setHeader(headerName, event.headers[headerName]);
+          }
+        }
         return finish(request, event, context, options.request)
           .then(() => {
             const response = new Response(request);
