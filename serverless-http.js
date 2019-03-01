@@ -7,6 +7,7 @@ const getBody = require('./lib/get-body');
 const isBinary = require('./lib/is-binary');
 const dispatch = require('./lib/dispatch');
 const checkOptions = require("./lib/options");
+const { lambdaOriginRequest } = require("./lib/lambda-response");
 
 const Request = require('./lib/request');
 const Response = require('./lib/response');
@@ -23,19 +24,24 @@ module.exports = function (app, opts = {}) {
       .then(() => {
         const context = ctx || {};
         const event = cleanUpEvent(evt, options);
-
+        
         const request = new Request(event);
 
-        return finish(request, evt, context, options.request)
+        return finish(request, event, context, options.request)
           .then(() => {
             const response = new Response(request);
 
             handler(request, response);
 
-            return finish(response, evt, context, options.response);
+            return finish(response, event, context, options.response);
           });
       })
       .then(res => {
+        if (options.platform === "aws") {
+          if (options.type === "edge-origin-request") {
+            return lambdaOriginRequest(res, options)
+          }
+        }
         const statusCode = res.statusCode;
         const headers = Response.headers(res);
         const isBase64Encoded = isBinary(headers, options);
