@@ -22,9 +22,9 @@ module.exports = function (app, opts = {}) {
     const promise = Promise.resolve()
       .then(() => {
         const context = ctx || {};
-        const { event, ip, requestId } = cleanUpEvent(evt, options);
+        const event = cleanUpEvent(evt, options);
 
-        const request = new Request(event, ip, requestId, options);
+        const request = new Request(event);
 
         return finish(request, evt, context, options.request)
           .then(() => {
