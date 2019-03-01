@@ -14,6 +14,7 @@ const Response = require('./lib/response');
 module.exports = function (app, opts = {}) {
   const handler = getHandler(app);
   const { options } = checkOptions(opts);
+
   return (evt, ctx, callback) => {
 
     ctx.callbackWaitsForEmptyEventLoop = !!options.callbackWaitsForEmptyEventLoop;
@@ -21,24 +22,17 @@ module.exports = function (app, opts = {}) {
     const promise = Promise.resolve()
       .then(() => {
         const context = ctx || {};
-        const event = cleanUpEvent(evt, options);
+        const { event, ip, requestId } = cleanUpEvent(evt, options);
 
-        const request = Request(event);
-        console.log(request);
-        for (let headerName in event.headers) {
-          if (Array.isArray(event.headers[headerName])) {
-            event.headers[headerName].forEach(value => request.setHeader(headerName, value));
-          } else {
-            request.setHeader(headerName, event.headers[headerName]);
-          }
-        }
-        return finish(request, event, context, options.request)
+        const request = new Request(event, ip, requestId, options);
+
+        return finish(request, evt, context, options.request)
           .then(() => {
             const response = new Response(request);
 
             handler(request, response);
 
-            return finish(response, event, context, options.response);
+            return finish(response, evt, context, options.response);
           });
       })
       .then(res => {
