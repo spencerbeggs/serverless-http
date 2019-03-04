@@ -315,7 +315,7 @@ describe('spec', () => {
         expect(() => checkOptions()).to.not.throw(Error);
     });
 
-    it('should set defaults platform and type if no options are passed', () => {
+    it('should set defaults platform "aws" and type "default" if no options are passed', () => {
       let options = checkOptions();
       expect(options).to.be.an('object');
       expect(options).to.have.property("platform", "aws");
