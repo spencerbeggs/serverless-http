@@ -20,6 +20,18 @@
             "uri": "/foobar",
             "method": "GET",
             "headers": {
+              "accept": [
+                {
+                  "key": "Accept",
+                  "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+                }
+              ],
+              "accept-encoding": [
+                {
+                  "key": "Accept-Encoding",
+                  "value": "gzip, deflate, br"
+                }
+              ],
               "host": [
                 {
                   "key": "Host",

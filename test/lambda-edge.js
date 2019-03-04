@@ -5,7 +5,7 @@ const express = require('express'),
     onHeaders = require('on-headers'),
     serverless = require('../serverless-http'),
     zlib = require("zlib"),
-    util = require("util");
+    compression = require("compression");
 
  describe('lambda-edge', () => {
   describe("viewer-request", () => {
@@ -28,7 +28,37 @@ const express = require('express'),
         type: "edge-origin-request"
       })
       .then(response => {
-        console.log(util.inspect(JSON.stringify(response)));
+        expect(response.status).to.equal("200");
+        expect(zlib.gunzipSync(Buffer.from(response.body, "base64")).toString("utf8")).to.equal(htmlString);
+      });
+    });
+
+    it("it compresses the body if it is not already compressed", () => {
+      app.use("/foobar", function(req, res) {
+        res.status(200).send(htmlString);
+      });
+      return request(app, events.aws.edge.origin.request.basic, {
+        platform: "aws",
+        type: "edge-origin-request"
+      })
+      .then(response => {
+        expect(response.status).to.equal("200");
+        expect(zlib.gunzipSync(Buffer.from(response.body, "base64")).toString("utf8")).to.equal(htmlString);
+      });
+    });
+
+    it("it passes through the body if it is already compressed", () => {
+      app.use(compression({
+        threshold: 0
+      }));
+      app.use("/foobar", function(req, res) {
+        res.status(200).send(htmlString);
+      });
+      return request(app, events.aws.edge.origin.request.basic, {
+        platform: "aws",
+        type: "edge-origin-request"
+      })
+      .then(response => {
         expect(response.status).to.equal("200");
         expect(zlib.gunzipSync(Buffer.from(response.body, "base64")).toString("utf8")).to.equal(htmlString);
       });
