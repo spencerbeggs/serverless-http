@@ -311,16 +311,31 @@ describe('spec', () => {
 
   describe('shared options', () => {
 
+    it('should not throw if no options are passed', () => {
+        expect(() => checkOptions()).to.not.throw(Error);
+    });
+
+    it('should set defaults platform and type if no options are passed', () => {
+      let options = checkOptions();
+      expect(options).to.be.an('object');
+      expect(options).to.have.property("platform", "aws");
+      expect(options).to.have.property("type", "default");
+    });
+
     it('should throw if options.platform is not a string', () => {
-      expect(() => checkOptions({
-        platform: undefined
-      })).to.throw(Error);
+      [null, undefined, 42, {}].forEach(platform => {
+        expect(() => checkOptions({
+          platform
+        })).to.throw(Error);
+      });
     });
 
     it('should throw if options.type is not a string', () => {
-      expect(() => checkOptions({
-        type: undefined
-      })).to.throw(Error);
+      [null, undefined, 42, {}].forEach(type => {
+        expect(() => checkOptions({
+          type
+        })).to.throw(Error);
+      });
     });
 
     it('should throw if options.platform is not "aws"', () => {
@@ -328,6 +343,8 @@ describe('spec', () => {
         platform: "foobar"
       })).to.throw(Error);
     });
+
+
   });
 
   describe('aws platform options', () => {
@@ -338,18 +355,38 @@ describe('spec', () => {
       })).to.throw(Error);
     });
 
-    it('should throw if option.type is invalid for options.platform "aws"', () => {
+    it('should throw if options.type is invalid for options.platform "aws"', () => {
       expect(() => checkOptions({
         type: "foobar"
       })).to.throw(Error);
     });
 
-    it('should not throw if option.type is valid', () => {
+    it('should not throw if options.type is valid', () => {
       ["default", "edge-viewer-request", "edge-viewer-response", "edge-origin-request", "edge-origin-response"].forEach(type => {
         expect(() => checkOptions({
           type
         })).to.not.throw();
       });
+    });
+
+    describe('edge-origin-request', () => {
+
+      it("should throw if options[someOption] is not not valid", () => {
+        expect(() => checkOptions({
+          type: "edge-origin-request",
+          foobar: "bar"
+        })).to.throw(Error);
+      });
+
+      it("should throw if options.compress not an array or false", () => {
+        [null, true, {}, 42, undefined, "foobar"].forEach(value => {
+          expect(() => checkOptions({
+            type: "edge-origin-request",
+            compress: value
+          })).to.throw(Error);
+        });
+      });
+
     });
 
   });

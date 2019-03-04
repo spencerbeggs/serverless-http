@@ -14,7 +14,7 @@ const Response = require('./lib/response');
 
 module.exports = function (app, opts = {}) {
   const handler = getHandler(app);
-  const { options } = checkOptions(opts);
+  const options = checkOptions(opts);
 
   return (evt, ctx, callback) => {
 
@@ -37,10 +37,8 @@ module.exports = function (app, opts = {}) {
           });
       })
       .then(res => {
-        if (options.platform === "aws") {
-          if (options.type === "edge-origin-request") {
-            return lambdaOriginRequest(res, options)
-          }
+        if (options.platform === "aws" && options.type === "edge-origin-request") {
+          return lambdaOriginRequest(res, options)
         }
         const statusCode = res.statusCode;
         const headers = Response.headers(res);
