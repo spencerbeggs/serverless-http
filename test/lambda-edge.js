@@ -3,7 +3,9 @@ const express = require('express'),
     request = require('./util/request'),
     events = require("./events"),
     onHeaders = require('on-headers'),
-    serverless = require('../serverless-http');
+    serverless = require('../serverless-http'),
+    zlib = require("zlib"),
+    util = require("util");
 
  describe('lambda-edge', () => {
   describe("viewer-request", () => {
@@ -13,35 +15,22 @@ const express = require('express'),
   });
 
   describe("origin-request", () => {
-    let app;
+    let app, htmlString = "<h1>Hello, world!</h1>";
     beforeEach(function() {
       app = express();
     });
     it("returns 200 for a valid request", () => {
       app.use("/foobar", function(req, res) {
-        res.status(200).send("<h1>Hello, world!</h1>");
+        res.status(200).send(htmlString);
       });
       return request(app, events.aws.edge.origin.request.basic, {
         platform: "aws",
         type: "edge-origin-request"
       })
       .then(response => {
+        console.log(util.inspect(JSON.stringify(response)));
         expect(response.status).to.equal("200");
-        expect(response.body).to.equal("H4sIAAAAAAAAE7PJMLTzSM3JyddRKM8vyklRtNEHigAAc3GIjBYAAAA=");
-      });
-    });
-
-    it("should handle requests without a body",  () => {
-      app.use("/foobar", function(req, res) {
-        res.status(200).send("<h1>Hello, world!</h1>");
-      });
-      return request(app, events.aws.edge.origin.request.basic, {
-        platform: "aws",
-        type: "edge-origin-request"
-      })
-      .then(response => {
-        expect(response.status).to.equal("200");
-        expect(response.body).to.equal("H4sIAAAAAAAAE7PJMLTzSM3JyddRKM8vyklRtNEHigAAc3GIjBYAAAA=");
+        expect(zlib.gunzipSync(Buffer.from(response.body, "base64")).toString("utf8")).to.equal(htmlString);
       });
     });
 
