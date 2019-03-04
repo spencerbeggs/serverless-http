@@ -31,6 +31,20 @@ const express = require('express'),
       });
     });
 
+    it("should handle requests without a body",  () => {
+      app.use("/foobar", function(req, res) {
+        res.status(200).send("<h1>Hello, world!</h1>");
+      });
+      return request(app, events.aws.edge.origin.request.basic, {
+        platform: "aws",
+        type: "edge-origin-request"
+      })
+      .then(response => {
+        expect(response.status).to.equal("200");
+        expect(response.body).to.equal("H4sIAAAAAAAAE7PJMLTzSM3JyddRKM8vyklRtNEHigAAc3GIjBYAAAA=");
+      });
+    });
+
     it('should set custom requestId', (done) => {
       let called;
       const handler = serverless((req, res) => {
